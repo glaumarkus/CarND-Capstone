@@ -73,10 +73,8 @@ class TLDetector(object):
     def image_cb(self, msg):
         """Identifies red lights in the incoming camera image and publishes the index
             of the waypoint closest to the red light's stop line to /traffic_waypoint
-
         Args:
             msg (Image): image from car-mounted camera
-
         """
         self.has_image = True
         self.camera_image = msg
@@ -101,38 +99,27 @@ class TLDetector(object):
         self.state_count += 1
 
     def get_closest_waypoint(self, x, y):
-        """Identifies the closest path waypoint to the given position
-            https://en.wikipedia.org/wiki/Closest_pair_of_points_problem
-        Args:
-            pose (Pose): position to match a waypoint to
 
-        Returns:
-            int: index of the closest waypoint in self.waypoints
-
-        """
         closest_idx = self.waypoint_tree.query([x, y], 1)[1]
         return closest_idx
 
     def get_light_state(self, light):
-        """Determines the current color of the traffic light
+        # for testing
+        #return light.state
+        if (not self.has_image):
+            self.prev_light_loc = None
+        cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
-        Args:
-            light (TrafficLight): light to classify
-
-        Returns:
-            int: ID of traffic light color (specified in styx_msgs/TrafficLight)
-
-        """
-        return light.state
+        true_color = light.state
+        pred_color = self.light_classifier.get_classification(cv_image)
+        return pred_color
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
             location and color
-
         Returns:
             int: index of waypoint closes to the upcoming stop line for a traffic light (-1 if none exists)
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
-
         """
         closest_light = None
         line_wp_idx = None
