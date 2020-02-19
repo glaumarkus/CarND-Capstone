@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Bool
 from geometry_msgs.msg import PoseStamped, Pose
 from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
@@ -11,12 +11,14 @@ from scipy.spatial import KDTree
 import tf
 import cv2
 import yaml
+from time import time
 
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 1
 
 
 class TLDetector(object):
     def __init__(self):
+
         rospy.init_node('tl_detector')
 
         self.pose = None
@@ -27,6 +29,9 @@ class TLDetector(object):
         self.waypoints_2d = None
         self.waypoint_tree = None
         self.has_image = None
+        self.img_filter = 0
+        
+        self.time_counter = None
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -36,7 +41,7 @@ class TLDetector(object):
         helps you acquire an accurate ground truth data source for the traffic light
         classifier by sending the current color state of all traffic lights in the
         simulator. When testing on the vehicle, the color state will not be available. You'll need to
-        rely on the position of the light and the camera image to predict it..
+        rely on the position of the light and the camera image to predict it.
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
@@ -44,10 +49,16 @@ class TLDetector(object):
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
 
+        self.tl_detector_init = rospy.Publisher('/tl_detector_initialized', Bool, queue_size=1)
         self.upcoming_red_light_pub = rospy.Publisher('/traffic_waypoint', Int32, queue_size=1)
+        #self.tl_detector_init.publish(Bool(False))
 
         self.bridge = CvBridge()
         self.light_classifier = TLClassifier()
+        print('INIT DONE')
+        print('')
+        print('')
+        self.tl_detector_init.publish(Bool(True))
         self.listener = tf.TransformListener()
 
         self.state = TrafficLight.UNKNOWN
@@ -71,32 +82,37 @@ class TLDetector(object):
         self.lights = msg.lights
 
     def image_cb(self, msg):
+
         """Identifies red lights in the incoming camera image and publishes the index
             of the waypoint closest to the red light's stop line to /traffic_waypoint
         Args:
             msg (Image): image from car-mounted camera
         """
-        self.has_image = True
-        self.camera_image = msg
-        light_wp, state = self.process_traffic_lights()
 
-        '''
-        Publish upcoming red lights at camera frequency.
-        Each predicted state has to occur `STATE_COUNT_THRESHOLD` number
-        of times till we start using it. Otherwise the previous stable state is
-        used.
-        '''
-        if self.state != state:
-            self.state_count = 0
-            self.state = state
-        elif self.state_count >= STATE_COUNT_THRESHOLD:
-            self.last_state = self.state
-            light_wp = light_wp if state == TrafficLight.RED else -1
-            self.last_wp = light_wp
-            self.upcoming_red_light_pub.publish(Int32(light_wp))
+        if self.img_filter > 3:
+            self.has_image = True
+            self.camera_image = msg
+            
+                
+            light_wp, state = self.process_traffic_lights()
+
+            # new logic
+
+            if self.state != state:
+                self.state_count = 0
+                self.state = state
+            elif self.state_count >= STATE_COUNT_THRESHOLD:
+                self.last_state = self.state
+                light_wp = light_wp if state == TrafficLight.RED else -1
+                self.last_wp = light_wp
+                self.upcoming_red_light_pub.publish(Int32(light_wp))
+            else:
+                self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+            self.state_count += 1
+
+            self.img_filter = 0
         else:
-            self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-        self.state_count += 1
+            self.img_filter += 1
 
     def get_closest_waypoint(self, x, y):
 
@@ -112,15 +128,21 @@ class TLDetector(object):
 
         true_color = light.state
         pred_color = self.light_classifier.get_classification(cv_image)
+
+        #print("True Color: ", true_color)
+        #print("Pred Color: ", pred_color)
+
         return pred_color
 
     def process_traffic_lights(self):
+        
         """Finds closest visible traffic light, if one exists, and determines its
             location and color
         Returns:
             int: index of waypoint closes to the upcoming stop line for a traffic light (-1 if none exists)
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
         """
+
         closest_light = None
         line_wp_idx = None
 
