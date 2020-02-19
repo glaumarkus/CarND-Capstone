@@ -2,28 +2,33 @@
 import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Bool
 from styx_msgs.msg import Lane, Waypoint
 from scipy.spatial import KDTree
 
 import math
 
 '''
-This node will publish waypoints from the car's current position to some `x` distance ahead.
 
+cd /home/workspace
+cd CarND-Capstone
+pip install -r requirements.txt
+cd ros
+catkin_make
+source devel/setup.sh
+roslaunch launch/styx.launch
+
+This node will publish waypoints from the car's current position to some `x` distance ahead.
 As mentioned in the doc, you should ideally first implement a version which does not care
 about traffic lights or obstacles.
-
 Once you have created dbw_node, you will update this node to use the status of traffic lights too.
-
 Please note that our simulator also provides the exact location of traffic lights and their
 current status in `/vehicle/traffic_lights` message. You can use this message to build this node
 as well as to verify your TL classifier.
-
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 200  # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 75  # Number of waypoints we will publish. You can change this number
 MAX_DECEL = 0.5
 
 
@@ -31,25 +36,45 @@ class WaypointUpdater(object):
     def __init__(self):
         rospy.init_node('waypoint_updater')
 
+        # INITS
+
         self.base_lane = None
         self.pose = None
+        self.init_done = False
         self.stopline_wp_idx = -1
         self.waypoints_2d = None
         self.waypoint_tree = None
 
+        # SUBS
+
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
         rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        
+        # TO DO: implement subsriber for tl_detector_active
+        rospy.Subscriber('/tl_detector_initialized',Bool, self.tl_detector_cb)
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
+
+
+        # additional params
+        self.loop_freq = 30 # in Hertz
+        self.vehicle_velocity = 0.0 # current velocity
 
         self.loop()
 
     def loop(self):
-        rate = rospy.Rate(50)
+        rate = rospy.Rate(self.loop_freq)
         while not rospy.is_shutdown():
-            if self.pose and self.base_lane:
-                self.publish_waypoints()
+
+            # TO DO: dont drive if tl_detection node not initialized
+            if self.init_done:
+                if self.pose and self.base_lane:
+                    self.publish_waypoints()
+            else:
+                rospy.logwarn('Waiting for tl_detection node')
+                rate.sleep()
+                continue
             rate.sleep()
 
     def get_closest_waypoint_idx(self):
@@ -111,6 +136,10 @@ class WaypointUpdater(object):
     def pose_cb(self, msg):
         self.pose = msg
 
+    def tl_detector_cb(self, msg):
+        self.init_done = True
+
+
     def waypoints_cb(self, waypoints):
         self.base_lane = waypoints
         if not self.waypoints_2d:
@@ -143,4 +172,3 @@ if __name__ == '__main__':
         WaypointUpdater()
     except rospy.ROSInterruptException:
         rospy.logerr('Could not start waypoint updater node.')
-
