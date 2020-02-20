@@ -50,7 +50,7 @@ class TLClassifier(object):
                 x_max = int(box[2] * self.img.shape[0])
                 y_min = int(box[1] * self.img.shape[1])
                 y_max = int(box[3] * self.img.shape[1])
-                self.img_out = cv2.resize(cv2.cvtColor(self.img, cv2.COLOR_BGRB2RGB)[x_min:x_max,y_min:y_max,:],(14,32))
+                self.img_out = cv2.resize(cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)[x_min:x_max,y_min:y_max,:],(14,32))
                 break
 
     def classify_img(self):
