@@ -89,7 +89,7 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
         """
 
-        if self.img_filter > 5:
+        if self.img_filter >= 5:
             self.has_image = True
             self.camera_image = msg
             
@@ -101,7 +101,7 @@ class TLDetector(object):
             if self.state != state:
                 self.state_count = 0
                 self.state = state
-            elif self.state_count > STATE_COUNT_THRESHOLD and (state == TrafficLight.RED or state == TrafficLight.YELLOW):
+            elif self.state_count >= STATE_COUNT_THRESHOLD and (state == TrafficLight.RED or state == TrafficLight.YELLOW):
                 self.last_wp = light_wp
                 self.upcoming_red_light_pub.publish(Int32(light_wp))
             else:
