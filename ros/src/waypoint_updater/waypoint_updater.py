@@ -9,15 +9,6 @@ from scipy.spatial import KDTree
 import math
 
 '''
-
-cd /home/workspace
-cd CarND-Capstone
-pip install -r requirements.txt
-cd ros
-catkin_make
-source devel/setup.sh
-roslaunch launch/styx.launch
-
 This node will publish waypoints from the car's current position to some `x` distance ahead.
 As mentioned in the doc, you should ideally first implement a version which does not care
 about traffic lights or obstacles.
@@ -56,10 +47,8 @@ class WaypointUpdater(object):
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-
         # additional params
         self.loop_freq = 50 # in Hertz
-        self.vehicle_velocity = 0.0 # current velocity
 
         self.loop()
 
