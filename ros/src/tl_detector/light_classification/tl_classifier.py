@@ -23,7 +23,7 @@ class TLClassifier(object):
 
         self.localize_obj(image)
         if self.img_out is None:
-            print('Didnt find traffic lights')
+            #print('Didnt find traffic lights')
             return self.match_dict[3]
         self.classify_img()
         return self.match_dict[self.state]
