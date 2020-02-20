@@ -13,7 +13,7 @@ import cv2
 import yaml
 from time import time
 
-STATE_COUNT_THRESHOLD = 1
+STATE_COUNT_THRESHOLD = 3
 
 
 class TLDetector(object):
@@ -89,7 +89,7 @@ class TLDetector(object):
             msg (Image): image from car-mounted camera
         """
 
-        if self.img_filter > 3:
+        if self.img_filter > 5:
             self.has_image = True
             self.camera_image = msg
             
@@ -97,18 +97,16 @@ class TLDetector(object):
             light_wp, state = self.process_traffic_lights()
 
             # new logic
-
+            # if state changed we need to determine the change, relevant for publishing is only red and yellow lights
             if self.state != state:
                 self.state_count = 0
                 self.state = state
-            elif self.state_count >= STATE_COUNT_THRESHOLD:
-                self.last_state = self.state
-                light_wp = light_wp if state == TrafficLight.RED else -1
+            elif self.state_count > STATE_COUNT_THRESHOLD and (state == TrafficLight.RED or state == TrafficLight.YELLOW):
                 self.last_wp = light_wp
                 self.upcoming_red_light_pub.publish(Int32(light_wp))
             else:
                 self.upcoming_red_light_pub.publish(Int32(self.last_wp))
-            self.state_count += 1
+                self.state_count += 1
 
             self.img_filter = 0
         else:
