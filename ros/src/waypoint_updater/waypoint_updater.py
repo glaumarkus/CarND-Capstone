@@ -58,7 +58,7 @@ class WaypointUpdater(object):
 
 
         # additional params
-        self.loop_freq = 30 # in Hertz
+        self.loop_freq = 50 # in Hertz
         self.vehicle_velocity = 0.0 # current velocity
 
         self.loop()
