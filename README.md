@@ -3,13 +3,13 @@
 Markus Glau (Team Lead)
 glaumarkus1209@gmail.com
 
-Bogdan Kovalchuk
+[Bogdan Kovalchuk](https://github.com/bogdan-kovalchuk)
 bogdan.kovalchuk@globallogic.com
 
 Jorve Kohls
 jorve.kohls@tuhh.de
 
-Chitra Chaudhari
+[Chitra Chaudhari](https://github.com/ChitraChaudhari)
 chitraksonawane@gmail.com
 
 Nihar Patel
@@ -33,6 +33,22 @@ The actual controls are implemented in the twist_controller.py file. In the curr
 When the algorithm returns a negative value for throttle, it means the car needs to decelerate. Brake is the amount of torque that is applied to the brake system to decrease the car's speed. As we did for throttle, we smooth the final values of brake for the comfort .
 
 ### Traffic light detection
+
+Carla publishes image data from a camera attached at the front of the vehicle. Therefore a node is needed, that one the one hand detects traffic light boundaries and on the other classify the colors of the given light. 
+
+For the detection task it's best to refer to already trained models. Well suited for this task are the object detection models in the [Tensorflow detection model zoo](https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/detection_model_zoo.md). 
+
+These models are pre-trained on the [COCO
+dataset](http://mscoco.org), the [Kitti dataset](http://www.cvlibs.net/datasets/kitti/),
+the [Open Images dataset](https://github.com/openimages/dataset), the
+[AVA v2.1 dataset](https://research.google.com/ava/) and the
+[iNaturalist Species Detection Dataset](https://github.com/visipedia/inat_comp/blob/master/2017/README.md#bounding-boxes) and already feature a label for traffic lights (10). Therefore any of these models could be used out of the box. 
+
+Since the target project is within an embedded system, speed will matter. Considering this, I used the ssd_mobilenet_v1_coco, which on reference has the fastest performance with the given tensorflow distribution. First I initilize the tl_detection with the already existing frozen inference graph and link the input and output tensors of the graph with class variables. The input tensor in this graph is an image of any size. The outputs are then boxes around the object, score (certainty) and the corresponding class. The outputs are ordered by score, which means high certainty is also high up on the list. I implemented a filter on the score to be at least above 0.5 certainty.
+
+For classification task a basic CNN architecture is used to classify the resulting images. This model was created by using the [BOSCH Dataset](https://hci.iwr.uni-heidelberg.de/node/6132), which features around 5000 consecutive images of driving and already labeled and detected traffic light boxes. Around 3600 images were extracted from the labeled boxes and after sampleing used to train the network. In a fully integrated pipeline, the detection and classification take around 0.06s on average and could therefore reach a performance of 10 FPS. More details an model creation and performance can be found within the respective [repo](https://github.com/glaumarkus/Traffic-Light-Detection-and-Classification).
+
+![png](media/classification_pipeline.png)
 
 # Setup
 
