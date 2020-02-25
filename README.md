@@ -1,19 +1,15 @@
 ## Team Members
 
-Markus Glau (Team Lead)
-glaumarkus1209@gmail.com
+Markus Glau (Team Lead) - glaumarkus1209@gmail.com
 
-[Bogdan Kovalchuk](https://github.com/bogdan-kovalchuk)
-bogdan.kovalchuk@globallogic.com
+[Bogdan Kovalchuk](https://github.com/bogdan-kovalchuk) - bogdan.kovalchuk@globallogic.com
 
-Jorve Kohls
-jorve.kohls@tuhh.de
+Jorve Kohls - jorve.kohls@tuhh.de
 
-[Chitra Chaudhari](https://github.com/ChitraChaudhari)
-chitraksonawane@gmail.com
+[Chitra Chaudhari](https://github.com/ChitraChaudhari) - chitraksonawane@gmail.com
 
-Nihar Patel
-patel.nihar2596@gmail.com
+Nihar Patel - patel.nihar2596@gmail.com
+
 
 # Project overview
 
@@ -22,7 +18,11 @@ This is the project repo for the final project of the Udacity Self-Driving Car N
 - Drive By Wire node
 - Traffic light detection
 
+Test runs with the vehicle have been completed with both 1.2 and 1.3 simulator, as well as testing the traffic light detection and classification with provided traffic light bag.
+
 ### Waypoint updater
+
+The waypoint updater is responsible for processing map data to return a path the vehicle can follow along the road. It is crucial that the vehicle doesnt start moving before all nodes have been initialized. Since the traffic light detection module uses tensorflow and takes some time to be initialized, the car will print warnings if it observes current locations coming in but no image data. If everything has been initialized, the car will start to generate a lane and its corresponding waypoints based on the map waypoints. The waypoint updater also subsribes to the traffic light detection and decelerates if there is an identified stop line for an intersection. 
 
 ### Drive By Wire node
 
@@ -49,6 +49,12 @@ Since the target project is within an embedded system, speed will matter. Consid
 For classification task a basic CNN architecture is used to classify the resulting images. This model was created by using the [BOSCH Dataset](https://hci.iwr.uni-heidelberg.de/node/6132), which features around 5000 consecutive images of driving and already labeled and detected traffic light boxes. Around 3600 images were extracted from the labeled boxes and after sampleing used to train the network. In a fully integrated pipeline, the detection and classification take around 0.06s on average and could therefore reach a performance of 10 FPS. More details an model creation and performance can be found within the respective [repo](https://github.com/glaumarkus/Traffic-Light-Detection-and-Classification).
 
 ![png](media/classification_pipeline.png)
+
+## Challenges
+
+We noticed that the provided udacity workspace is not perfectly suited for running the simulator, due to some lag which cause the vehicles dbw node to get out of sync with the vehicle. This will result in it leaving the road. Various optimization attempts to reduce latency with limiting the amount of processed images or reducing the run frequency of waypoint updater yielded not much success. The same code however run fine with using the provided VM image from udacity and running the simulator on the host. 
+
+As the project setups is tested against the udacity simulator 1.3 but evaluated against the 1.2 version, we also did test runs on the old simulator. Here the frequency in which the traffic lights change color is much higher, which may lead to some odd situations: the car stops correctly at the identified line but fails to accelerate quick enough to pass the traffic light during the green cycle. Some adjustments have therefore been made to enable quicker acceleration.
 
 # Setup
 
