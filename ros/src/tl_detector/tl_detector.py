@@ -33,6 +33,9 @@ class TLDetector(object):
         
         self.time_counter = None
 
+        sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
+        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
+
         '''
         /vehicle/traffic_lights provides you with the location of the traffic light in 3D map space and
         helps you acquire an accurate ground truth data source for the traffic light
@@ -42,6 +45,9 @@ class TLDetector(object):
         '''
         self.tl_detector_init = rospy.Publisher('/tl_detector_initialized', Bool, queue_size=1)
         self.init_done = False
+
+        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
+        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -60,11 +66,6 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
-        
-        sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
-        sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
-        sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
-        sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
 
         rospy.spin()
 
@@ -102,14 +103,18 @@ class TLDetector(object):
             if self.state != state:
                 self.state_count = 0
                 self.state = state
+		rospy.loginfo('Mode: Free Drive.')
             elif self.state_count >= STATE_COUNT_THRESHOLD and (state == TrafficLight.RED or state == TrafficLight.YELLOW):
                 self.last_wp = light_wp
                 self.upcoming_red_light_pub.publish(Int32(light_wp))
-            elif self.state_count >= STATE_COUNT_THRESHOLD and (state == TrafficLight.GREEN or state == TrafficLight.UNKNOWN):
+		rospy.loginfo('Mode: Stoping at red light.')
+            elif (state == TrafficLight.GREEN or state == TrafficLight.UNKNOWN):
                 self.last_wp = -1
                 self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+		rospy.loginfo('Mode: Free Drive.')
             else:
                 self.upcoming_red_light_pub.publish(Int32(self.last_wp))
+		rospy.loginfo('Mode: Free Drive.')
                 self.state_count += 1
 
 
@@ -126,8 +131,8 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
         pred_color = self.light_classifier.get_classification(cv_image)
 
-        rospy.loginfo('True Color: {}'.format(light.state))
-        rospy.loginfo('Pred Color: {}'.format(pred_color))
+        #rospy.loginfo('True Color: {}'.format(light.state))
+        #rospy.loginfo('Pred Color: {}'.format(pred_color))
 
         return pred_color
 
