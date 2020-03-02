@@ -82,8 +82,8 @@ class Controller(object):
         else:
             throttle = 0
 
-        if throttle > 0.5:
-            throttle = 0.5        
+        if throttle > 0.6:
+            throttle = 0.6       
 
         #smoothing throttle acceleration and deceleration    
         if (throttle > 0.025) and (throttle - self.last_throttle) > 0.005:
