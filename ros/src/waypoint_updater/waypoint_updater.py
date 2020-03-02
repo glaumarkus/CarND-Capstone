@@ -61,7 +61,7 @@ class WaypointUpdater(object):
                 if self.pose and self.base_lane:
                     self.publish_waypoints()
             else:
-                rospy.logwarn('Waiting for tl_detection node')
+                #rospy.logwarn('Waiting for tl_detection node')
                 rate.sleep()
                 continue
             rate.sleep()
